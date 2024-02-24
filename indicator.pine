@@ -1,0 +1,63 @@
+//@version=5
+
+indicator(title='Net Momentum & Expansion Oscillator Indicator', overlay=false)
+
+Show_Body_BS = input.bool(defval = true,title='Show Body Signal',inline="1",group = 'Net Movement',display=display.all - display.status_line,tooltip = "This will Hide Candle Signals on Chart")
+
+window = input.int(title='Interval Window:', minval=1, defval=5, group='Expansion Oscillator')
+multiplier = input.float(title='Average Multiplier:', minval=0.01, maxval=0.99, defval=0.5, group='Expansion Oscillator')
+
+//Net Movement
+h = ta.valuewhen(high >= ta.highest(window), high, 0)
+l = ta.valuewhen(low <= ta.lowest(window), low, 0)
+
+rising_falloff = l + ((ta.highest(window)-l)*multiplier)
+falling_falloff = h - ((h-ta.lowest(window))*multiplier)
+
+buy = math.max(close, falling_falloff) - falling_falloff
+//sel = math.min(close, rising_falloff) - rising_falloff
+sel = math.abs(math.min(close, rising_falloff) - rising_falloff)
+
+//Expansion Oscillator
+BodyRange() =>
+	math.abs(close - open)
+
+avgBody = ta.sma(BodyRange(), 15)
+
+Bull_Body = close > open
+Bear_Body = close < open
+
+Super_BULL = BodyRange() > avgBody * 1.5 and Bull_Body
+Super_BEAR = BodyRange() > avgBody * 1.5 and Bear_Body 
+
+Bull_Above_Avg = BodyRange() > avgBody  and Bull_Body
+Bear_Above_Avg = BodyRange() > avgBody  and Bear_Body
+
+Solid_Body = BodyRange() > avgBody * 1.5
+
+Super_Bull_Clr = color.rgb(157, 255, 0)
+Super_Bear_Clr = color.rgb(210, 1, 252)
+Below_AvG_Clr =  color.rgb(88,88,88)
+Above_Avg_Bull_Clr = color.rgb(3, 129, 108)
+Above_Avg_Bear_Clr = color.rgb(243, 63, 63)
+
+buySignal = Super_BULL and buy > 0
+sellSignal = Super_BEAR and sel > 0
+
+Solid_Body_Clr =  Super_BULL? Super_Bull_Clr: Super_BEAR ? Super_Bear_Clr:Below_AvG_Clr
+Solid_Body_Clr1 = buySignal ? Super_Bull_Clr: sellSignal ? Super_Bear_Clr:na
+
+Above_AvG_Clr =  Bull_Above_Avg and not  Super_BULL ?Above_Avg_Bull_Clr:
+ Bear_Above_Avg and not  Super_BEAR ? Above_Avg_Bear_Clr:
+ Below_AvG_Clr
+
+Body_Clr = Solid_Body ? Solid_Body_Clr:Above_AvG_Clr
+
+//plot NET movement and Expansion Oscillator
+plot(title='+ Decay', series=buy, style=plot.style_columns, color=color.blue, linewidth=3)
+plot(title='- Decay', series=sel, style=plot.style_columns, color=color.maroon, linewidth=3)
+plot(BodyRange(), style=plot.style_histogram, color=Body_Clr, title="Solid Candle Color",display=display.all - display.status_line,editable=false, linewidth = 3)
+barcolor(Show_Body_BS and Solid_Body ? Solid_Body_Clr1:na,editable = false,display=display.all)
+
+signalCondition = buySignal ? 1 : sellSignal ? -1 : na
+plot(signalCondition, title="signalCondition", color= na)
