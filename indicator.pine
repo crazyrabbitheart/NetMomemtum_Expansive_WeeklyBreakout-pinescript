@@ -53,9 +53,15 @@ Above_AvG_Clr =  Bull_Above_Avg and not  Super_BULL ?Above_Avg_Bull_Clr:
 
 Body_Clr = Solid_Body ? Solid_Body_Clr:Above_AvG_Clr
 
-//plot NET movement and Expansion Oscillator
-plot(title='+ Decay', series=buy, style=plot.style_columns, color=color.blue, linewidth=3)
-plot(title='- Decay', series=sel, style=plot.style_columns, color=color.maroon, linewidth=3)
+// Lance Quick Flip indicator
+Vol = volume
+VolAvg = ta.sma(volume, 200)
+
+barColor1 = Vol > VolAvg ? color.rgb(0, 0, 255) : color.blue
+barColor2 = Vol > VolAvg ? color.rgb(255, 150, 150) : color.rgb(255, 0, 0)
+
+plot(title='+ Decay', series=buy, style=plot.style_columns, color=barColor1, linewidth=3)
+plot(title='- Decay', series=sel, style=plot.style_columns, color=barColor2, linewidth=3)
 plot(BodyRange(), style=plot.style_histogram, color=Body_Clr, title="Solid Candle Color",display=display.all - display.status_line,editable=false, linewidth = 3)
 barcolor(Show_Body_BS and Solid_Body ? Solid_Body_Clr1:na,editable = false,display=display.all)
 

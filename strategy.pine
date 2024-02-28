@@ -2,7 +2,7 @@
 
 strategy(title='Net Momentum & Expansion & Weekly Breakout Strategy', overlay=true, pyramiding = 10, calc_on_every_tick = true)
 condition = input.source(open, "Ex")
-tpsltype = input.string('ATR', 'Type of TP&SL', ['Pivot', 'ATR'], group = 'Setting TP&SL')
+tpsltype = input.string('Pivot', 'Type of TP&SL', ['Pivot', 'ATR'], group = 'Setting TP&SL')
 ATRMultiple = input.float(1, 'ATR Multiple', 1, 3, 0.5, group = 'Setting TP&SL')
 ATRPeriod = input.int(14, 'ATR Period', group = 'Setting TP&SL')
 HistoryBarCount = input.int(1000, title = 'Bar Count for Calculate Pivot Point')
@@ -26,7 +26,7 @@ if tpsltype == 'ATR'
 
 else if tpsltype == 'Pivot' and buySignal
 	tmpTp = high//buySignal ? high : sellSignal ? low : tmpTp[1]
-	tmpSl = low
+	//tmpSl = low
 	i = 1
 	barIndex = bar_index
 	while barIndex > bar_index - HistoryBarCount
@@ -40,36 +40,39 @@ else if tpsltype == 'Pivot' and buySignal
 	else
 		tp := tmpTp
 
-	i := 1
-	barIndex := bar_index
-	while barIndex > bar_index - HistoryBarCount
-		if low[i] < tmpSl and low[i] < low[i+1]
-			tmpSl := low[i]
-			break
-		i += 1
-		barIndex -= 1
-	if tmpSl == low 		
-		sl := low-atr
-	else
-		sl := tmpSl
+	// i := 1
+	// barIndex := bar_index
+	// while barIndex > bar_index - HistoryBarCount
+	// 	if low[i] < tmpSl
+	// 		tmpSl := low[i]
+	// 		break
+	// 	i += 1
+	// 	barIndex -= 1
+	// if tmpSl == low 		
+	// 	sl := low-atr
+	// else
+	// 	sl := tmpSl
 
-else if tpsltype == 'Pivot' and sellSignal
-	tmpSl = high
-	tmpTp = low
-	i = 1
+	sl := low[1]
+
+else if tpsltype == 'Pivot' and sellSignal	
 	barIndex = bar_index
-	while barIndex > bar_index - HistoryBarCount
-		if high[i] > tmpSl and high[i] > high[i+1]
-			tmpSl := high[i]
-			break
-		i += 1
-		barIndex -= 1
-	if tmpSl == high 		
-		sl := high+atr
-	else
-		sl := tmpSl
+	tmpTp = low
+	// tmpSl = high
+	// i = 1	
+	// while barIndex > bar_index - HistoryBarCount
+	// 	if high[i] > tmpSl
+	// 		tmpSl := high[i]
+	// 		break
+	// 	i += 1
+	// 	barIndex -= 1
+	// if tmpSl == high 		
+	// 	sl := high+atr
+	// else
+	// 	sl := tmpSl
+	sl := high[1]
 
-	i := 1
+	i = 1
 	barIndex := bar_index
 	while barIndex > bar_index - HistoryBarCount
 		if low[i] < tmpTp and low[i] < low[i+1]
@@ -86,20 +89,62 @@ else if tpsltype == 'Pivot' and not buySignal and not sellSignal
 	tp := tp[1]
 	sl := sl[1]
 
-plot(tp, color=color.green, style = plot.style_circles)
-plot(sl, color=color.red, style = plot.style_circles)
 
-var testTable = table.new(position = position.top_right, columns = 2, rows = 1, bgcolor = color.lime, border_width = 1)
+// plot(tp, color=color.green, style= plot.style_circles)
+// plot(sl, color=color.red, style = plot.style_circles)
 
-if barstate.islast
-    table.cell(table_id = testTable, column = 0, row = 0, text = "TP: " + str.tostring(tp), bgcolor = color.green)
-    table.cell(table_id = testTable, column = 1, row = 0, text = "SL:  " + str.tostring(sl), bgcolor = color.red)
+volAvg = ta.sma(volume, 200)
 
-if buySignal
+var entrytime = 0
+var entryprice = 0.0
+
+pos_opened = false
+if buySignal and volume > volAvg
 	id = "buy"+str.tostring(bar_index)
 	strategy.entry(id, strategy.long)
+	entrytime := time
+	entryprice := close
+    pos_opened := true
 	strategy.exit("buyexit", id, profit = (tp-close)/syminfo.mintick, loss = (close-sl)/syminfo.mintick, comment_profit=id+"TP", comment_loss=id+"SL")
-if sellSignal
+
+if sellSignal and volume > volAvg
 	id = "sell"+str.tostring(bar_index)
 	strategy.entry(id, strategy.short)
+	entrytime := time
+	entryprice := close
+    pos_opened := true
 	strategy.exit("sellexit",id, profit = (close-tp)/syminfo.mintick, loss = (sl-close)/syminfo.mintick, comment_profit=id+"TP", comment_loss=id+"SL")
+
+//plot(strategy.position_size)
+pos = strategy.position_size
+if pos == 0
+    if pos_opened == false
+        entrytime := 0
+        entryprice := 0.0
+else
+	entrytime := entrytime[1]
+	entryprice := entryprice[1]
+
+//bgcolor(color = pos == 0 ? color.new(color.green, 75) : color.new(color.red, 75))
+
+var line line1 = na
+var line line2 = na
+
+if (buySignal or sellSignal) and volume > volAvg
+	line1 := line.new(bar_index, tp, bar_index, tp, style = line.style_dashed, xloc=xloc.bar_index, color = color.green)
+	line2 := line.new(bar_index, sl, bar_index, sl, style = line.style_dashed, xloc=xloc.bar_index, color = color.red)
+else
+	line.set_x2(line1, bar_index+1)
+	line.set_x2(line2, bar_index+1)
+	
+var testTable = table.new(position = position.top_right, columns = 3, rows = 1, bgcolor = color.lime, border_width = 1)
+
+//if barstate.islast
+convertedDate = entrytime == 0 ? "" : str.tostring(year(entrytime)) + "-" + str.tostring(month(entrytime)) + "-" + str.tostring(dayofmonth(entrytime))
+convertedTime = entrytime == 0 ? "" : " " + str.tostring(hour(entrytime)) + ":" + str.tostring(minute(entrytime))
+convertedPrice = entryprice == 0 ? "" : str.tostring(entryprice)
+convertedTP = na(tp) ? "" : str.tostring(tp)
+convertedSL = na(sl) ? "" : str.tostring(sl)
+table.cell(table_id = testTable, column = 0, row = 0, text = "TP: " + convertedTP, bgcolor = color.green)
+table.cell(table_id = testTable, column = 1, row = 0, text = "SL:  " + convertedSL, bgcolor = color.red)
+table.cell(table_id = testTable, column = 2, row = 0, text = "Time: " + convertedDate + convertedTime + "; Price: " + convertedPrice, bgcolor = color.yellow)
