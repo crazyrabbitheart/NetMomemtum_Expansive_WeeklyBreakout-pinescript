@@ -57,8 +57,8 @@ Body_Clr = Solid_Body ? Solid_Body_Clr:Above_AvG_Clr
 Vol = volume
 VolAvg = ta.sma(volume, 200)
 
-barColor1 = Vol > VolAvg ? color.rgb(0, 0, 255) : color.blue
-barColor2 = Vol > VolAvg ? color.rgb(255, 150, 150) : color.rgb(255, 0, 0)
+barColor1 = Vol < VolAvg ? color.blue : close > close[1] ? color.rgb(0, 0, 255) : color.rgb(255, 150, 150)
+barColor2 = Vol < VolAvg ? color.rgb(255, 0, 0) : close > close[1] ? color.rgb(0, 0, 255) : color.rgb(255, 150, 150)
 
 plot(title='+ Decay', series=buy, style=plot.style_columns, color=barColor1, linewidth=3)
 plot(title='- Decay', series=sel, style=plot.style_columns, color=barColor2, linewidth=3)
